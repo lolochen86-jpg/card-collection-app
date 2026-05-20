@@ -115,7 +115,9 @@ export async function addComment(data: Omit<Comment, "id" | "createdAt">) {
   const commentRef = doc(collection(db, "comments"));
   batch.set(commentRef, { ...data, createdAt: new Date().toISOString() });
   const postRef = doc(db, "posts", data.postId);
-  batch.update(postRef, { commentsCount: (await getDoc(postRef)).data()?.commentsCount + 1 ?? 1 });
+  const postSnap = await getDoc(postRef);
+  const currentCount: number = postSnap.data()?.commentsCount ?? 0;
+  batch.update(postRef, { commentsCount: currentCount + 1 });
   await batch.commit();
 }
 
@@ -125,12 +127,13 @@ export async function toggleLike(postId: string, userId: string) {
   const likeSnap = await getDoc(likeRef);
   const postRef = doc(db, "posts", postId);
   const batch = writeBatch(db);
+  const currentLikes: number = (await getDoc(postRef)).data()?.likesCount ?? 0;
   if (likeSnap.exists()) {
     batch.delete(likeRef);
-    batch.update(postRef, { likesCount: Math.max(0, (await getDoc(postRef)).data()?.likesCount - 1 ?? 0) });
+    batch.update(postRef, { likesCount: Math.max(0, currentLikes - 1) });
   } else {
     batch.set(likeRef, { postId, userId, createdAt: new Date().toISOString() });
-    batch.update(postRef, { likesCount: ((await getDoc(postRef)).data()?.likesCount ?? 0) + 1 });
+    batch.update(postRef, { likesCount: currentLikes + 1 });
   }
   await batch.commit();
   return !likeSnap.exists();

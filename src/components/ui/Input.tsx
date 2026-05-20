@@ -1,10 +1,10 @@
 import { cn } from "@/lib/utils";
-import { InputHTMLAttributes, forwardRef } from "react";
+import { InputHTMLAttributes, ReactNode, forwardRef } from "react";
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "prefix"> {
   label?: string;
   error?: string;
-  prefix?: React.ReactNode;
+  prefix?: ReactNode;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(

@@ -12,7 +12,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Textarea from "@/components/ui/Textarea";
-import { Camera, X, ChevronLeft, Plus } from "lucide-react";
+import { Camera, X, ChevronLeft, Sparkles } from "lucide-react";
 import type { AcquisitionType, StorageType, CardGrade, CardImage } from "@/types";
 import { ACQUISITION_TYPE_LABELS, STORAGE_TYPE_LABELS, CARD_GRADE_LABELS } from "@/lib/utils";
 
@@ -45,12 +45,14 @@ export default function NewCardPage() {
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [recognizing, setRecognizing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(0); // 0=photos, 1=basic, 2=acquisition, 3=storage
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     defaultValues: {
@@ -79,6 +81,59 @@ export default function NewCardPage() {
     URL.revokeObjectURL(previews[idx]);
     setImages((prev) => prev.filter((_, i) => i !== idx));
     setPreviews((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  async function handleRecognize() {
+    if (images.length === 0) {
+      toast.error("請先上傳至少一張卡片照片");
+      return;
+    }
+    setRecognizing(true);
+    try {
+      const file = images[0];
+      const compressed = await compressImage(file, 800);
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          // strip the data URL prefix to get raw base64
+          resolve(result.split(",")[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(compressed);
+      });
+
+      const res = await fetch("/api/cards/recognize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64: base64, mimeType: compressed.type }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error ?? "AI 辨識失敗");
+        return;
+      }
+
+      const d = json.data;
+      if (d.player) setValue("player", d.player);
+      if (d.team) setValue("team", d.team);
+      if (d.year) setValue("year", d.year);
+      if (d.brand) setValue("brand", d.brand);
+      if (d.series) setValue("series", d.series);
+      if (d.cardNumber) setValue("cardNumber", d.cardNumber);
+      if (d.parallel) setValue("parallel", d.parallel);
+      if (d.condition) setValue("condition", d.condition);
+      if (d.grade) setValue("grade", d.grade);
+
+      toast.success("AI 辨識完成，請確認並補充資料");
+      setStep(1);
+    } catch (err) {
+      console.error(err);
+      toast.error("AI 辨識失敗，請稍後再試");
+    } finally {
+      setRecognizing(false);
+    }
   }
 
   async function onSubmit(data: FormData) {
@@ -194,6 +249,30 @@ export default function NewCardPage() {
                 onChange={handleFileChange}
                 className="hidden"
               />
+
+              {images.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleRecognize}
+                  disabled={recognizing}
+                  className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white text-sm font-semibold shadow-md disabled:opacity-60 active:scale-95 transition-transform"
+                >
+                  {recognizing ? (
+                    <>
+                      <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                      AI 辨識中…
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={16} />
+                      AI 自動辨識卡片資訊
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           )}
 

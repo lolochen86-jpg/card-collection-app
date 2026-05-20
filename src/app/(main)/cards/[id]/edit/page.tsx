@@ -27,7 +27,7 @@ export default function EditCardPage() {
   useEffect(() => {
     getCard(id).then((card) => {
       if (!card) return;
-      reset({ ...card, tags: card.tags?.join(", ") ?? "" });
+      reset({ ...card, tags: card.tags?.join(", ") ?? "" } as unknown as FormData);
       setLoading(false);
     });
   }, [id, reset]);
