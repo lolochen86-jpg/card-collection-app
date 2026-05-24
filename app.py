@@ -28,6 +28,7 @@ from mlb_fetcher import (
     try_get_xfip,
 )
 from mlb_simulator import simulate_mlb
+from team_names_zh import MLB_TEAMS_ZH, NBA_TEAMS_ZH, build_display_map, zh_label
 
 # ── page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -92,7 +93,16 @@ def _metric_card(team_name: str, win_prob: float, spread_label: str = "") -> str
 st.title("🎲 賽事預測蒙地卡羅模擬器")
 st.caption("10,000 次模擬 · 真實 API 數據 · MLB ⚾ & NBA 🏀")
 
-sport = st.radio("選擇運動", ["NBA 🏀", "MLB ⚾"], horizontal=True)
+top_col1, top_col2 = st.columns([3, 1])
+with top_col1:
+    sport = st.radio("選擇運動", ["NBA 🏀", "MLB ⚾"], horizontal=True)
+with top_col2:
+    if st.button("🔄 強制更新數據", help="清除快取，重新從官方 API 抓取當日最新數據"):
+        st.cache_data.clear()
+        st.success("快取已清除！")
+        st.rerun()
+
+st.caption("📡 數據快取 10 分鐘自動更新；點上方按鈕可立即強制抓取當日最新數據（比賽結束後約數分鐘內 API 會更新）")
 
 st.divider()
 
@@ -111,19 +121,26 @@ if sport == "NBA 🏀":
 
     col1, col2, col3 = st.columns([2, 1, 2])
 
-    default_home = team_names.index("Boston Celtics") if "Boston Celtics" in team_names else 0
-    default_away = team_names.index("Golden State Warriors") if "Golden State Warriors" in team_names else 1
+    nba_display_map = build_display_map(team_names, NBA_TEAMS_ZH)
+    display_names = list(nba_display_map.keys())
+
+    default_home_disp = zh_label("Boston Celtics", NBA_TEAMS_ZH)
+    default_away_disp = zh_label("Golden State Warriors", NBA_TEAMS_ZH)
+    default_home_idx = display_names.index(default_home_disp) if default_home_disp in display_names else 0
 
     with col1:
-        home_team_name = st.selectbox("🏠 主場球隊", team_names, index=default_home)
+        home_disp = st.selectbox("🏠 主場球隊", display_names, index=default_home_idx)
+    home_team_name = nba_display_map[home_disp]
+    home_team_zh = NBA_TEAMS_ZH.get(home_team_name, home_team_name)
+
     with col2:
         st.markdown("<br><div style='text-align:center;font-size:1.5rem;'>VS</div>", unsafe_allow_html=True)
     with col3:
-        away_team_name = st.selectbox(
-            "✈️ 客場球隊",
-            [t for t in team_names if t != home_team_name],
-            index=min(default_away, len(team_names) - 2),
-        )
+        remaining = [d for d in display_names if d != home_disp]
+        default_away_idx = remaining.index(default_away_disp) if default_away_disp in remaining else 0
+        away_disp = st.selectbox("✈️ 客場球隊", remaining, index=default_away_idx)
+    away_team_name = nba_display_map[away_disp]
+    away_team_zh = NBA_TEAMS_ZH.get(away_team_name, away_team_name)
 
     n_sims = st.select_slider("模擬次數", options=[1_000, 5_000, 10_000, 50_000], value=10_000)
 
@@ -153,13 +170,13 @@ if sport == "NBA 🏀":
         stats_df = pd.DataFrame(
             {
                 "指標": ["Pace（每 48 分鐘回合數）", "進攻效率 OffRtg", "防守效率 DefRtg", "淨效率 NetRtg"],
-                home_team_name: [
+                home_team_zh: [
                     f"{home_stats['pace']:.1f}",
                     f"{home_stats['off_rtg']:.1f}",
                     f"{home_stats['def_rtg']:.1f}",
                     f"{home_stats['net_rtg']:+.1f}",
                 ],
-                away_team_name: [
+                away_team_zh: [
                     f"{away_stats['pace']:.1f}",
                     f"{away_stats['off_rtg']:.1f}",
                     f"{away_stats['def_rtg']:.1f}",
@@ -184,12 +201,12 @@ if sport == "NBA 🏀":
         c1, c2 = st.columns(2)
         with c1:
             st.markdown(
-                _metric_card(f"🏠 {home_team_name}", result["win_prob_a"], spread_home),
+                _metric_card(f"🏠 {home_team_zh}", result["win_prob_a"], spread_home),
                 unsafe_allow_html=True,
             )
         with c2:
             st.markdown(
-                _metric_card(f"✈️ {away_team_name}", result["win_prob_b"]),
+                _metric_card(f"✈️ {away_team_zh}", result["win_prob_b"]),
                 unsafe_allow_html=True,
             )
 
@@ -205,7 +222,7 @@ if sport == "NBA 🏀":
         # Pie
         fig.add_trace(
             go.Pie(
-                labels=[home_team_name, away_team_name],
+                labels=[home_team_zh, away_team_zh],
                 values=[result["win_prob_a"], result["win_prob_b"]],
                 hole=0.45,
                 marker_colors=["#89b4fa", "#f38ba8"],
@@ -240,7 +257,7 @@ if sport == "NBA 🏀":
             margin={"t": 50, "b": 30, "l": 20, "r": 20},
         )
         fig.update_xaxes(
-            title_text=f"{home_team_name} 多 ← 分差 → {away_team_name} 多",
+            title_text=f"{home_team_zh} 多 ← 分差 → {away_team_zh} 多",
             row=1,
             col=2,
             color="#cdd6f4",
@@ -254,7 +271,7 @@ if sport == "NBA 🏀":
         )
         ev_df = pd.DataFrame(
             {
-                "球隊": [home_team_name, away_team_name],
+                "球隊": [home_team_zh, away_team_zh],
                 "勝率": [f"{result['win_prob_a']:.2%}", f"{result['win_prob_b']:.2%}"],
                 "模型公平賠率（小數）": [fair_odds(result["win_prob_a"]), fair_odds(result["win_prob_b"])],
                 "美式賠率": [american_odds(result["win_prob_a"]), american_odds(result["win_prob_b"])],
@@ -277,20 +294,26 @@ else:
 
     col1, col2, col3 = st.columns([2, 1, 2])
 
-    default_home_mlb = mlb_team_names.index("New York Yankees") if "New York Yankees" in mlb_team_names else 0
-    default_away_mlb = mlb_team_names.index("Los Angeles Dodgers") if "Los Angeles Dodgers" in mlb_team_names else 1
+    mlb_display_map = build_display_map(mlb_team_names, MLB_TEAMS_ZH)
+    mlb_display_names = list(mlb_display_map.keys())
+
+    default_home_disp = zh_label("New York Yankees", MLB_TEAMS_ZH)
+    default_away_disp = zh_label("Los Angeles Dodgers", MLB_TEAMS_ZH)
+    default_home_idx = mlb_display_names.index(default_home_disp) if default_home_disp in mlb_display_names else 0
 
     with col1:
-        home_team_mlb = st.selectbox("🏠 主場球隊", mlb_team_names, index=default_home_mlb, key="mlb_home")
+        home_disp_mlb = st.selectbox("🏠 主場球隊", mlb_display_names, index=default_home_idx, key="mlb_home")
+    home_team_mlb = mlb_display_map[home_disp_mlb]
+    home_team_mlb_zh = MLB_TEAMS_ZH.get(home_team_mlb, home_team_mlb)
+
     with col2:
         st.markdown("<br><div style='text-align:center;font-size:1.5rem;'>VS</div>", unsafe_allow_html=True)
     with col3:
-        away_team_mlb = st.selectbox(
-            "✈️ 客場球隊",
-            [t for t in mlb_team_names if t != home_team_mlb],
-            index=min(default_away_mlb, len(mlb_team_names) - 2),
-            key="mlb_away",
-        )
+        remaining_mlb = [d for d in mlb_display_names if d != home_disp_mlb]
+        default_away_idx = remaining_mlb.index(default_away_disp) if default_away_disp in remaining_mlb else 0
+        away_disp_mlb = st.selectbox("✈️ 客場球隊", remaining_mlb, index=default_away_idx, key="mlb_away")
+    away_team_mlb = mlb_display_map[away_disp_mlb]
+    away_team_mlb_zh = MLB_TEAMS_ZH.get(away_team_mlb, away_team_mlb)
 
     home_id = mlb_team_dict[home_team_mlb]
     away_id = mlb_team_dict[away_team_mlb]
@@ -315,9 +338,9 @@ else:
     away_pit_opts = pitcher_options(away_pitchers)
 
     with pit_col1:
-        home_pit_sel = st.selectbox(f"{home_team_mlb} 先發投手", list(home_pit_opts.keys()), key="hp")
+        home_pit_sel = st.selectbox(f"{home_team_mlb_zh} 先發投手", list(home_pit_opts.keys()), key="hp")
     with pit_col2:
-        away_pit_sel = st.selectbox(f"{away_team_mlb} 先發投手", list(away_pit_opts.keys()), key="ap")
+        away_pit_sel = st.selectbox(f"{away_team_mlb_zh} 先發投手", list(away_pit_opts.keys()), key="ap")
 
     fetch_xfip = st.checkbox("嘗試從 Fangraphs 獲取 xFIP（較慢，需 pybaseball）", value=False)
     n_sims_mlb = st.select_slider("模擬次數 ", options=[1_000, 5_000, 10_000, 50_000], value=10_000)
@@ -379,7 +402,7 @@ else:
         mlb_stats_df = pd.DataFrame(
             {
                 "指標": ["每場得分 RPG", "打擊率 AVG", "長打率+上壘率 OPS", "球隊 ERA", "先發投手 ERA", "WHIP"],
-                home_team_mlb: [
+                home_team_mlb_zh: [
                     f"{home_s['runs_per_game']:.2f}",
                     f"{home_s['avg']:.3f}",
                     f"{home_s['ops']:.3f}",
@@ -387,7 +410,7 @@ else:
                     f"{home_pit_era:.2f} {home_pit_label}",
                     f"{home_s['whip']:.2f}",
                 ],
-                away_team_mlb: [
+                away_team_mlb_zh: [
                     f"{away_s['runs_per_game']:.2f}",
                     f"{away_s['avg']:.3f}",
                     f"{away_s['ops']:.3f}",
@@ -411,12 +434,12 @@ else:
         c1, c2 = st.columns(2)
         with c1:
             st.markdown(
-                _metric_card(f"🏠 {home_team_mlb}", result["win_prob_home"]),
+                _metric_card(f"🏠 {home_team_mlb_zh}", result["win_prob_home"]),
                 unsafe_allow_html=True,
             )
         with c2:
             st.markdown(
-                _metric_card(f"✈️ {away_team_mlb}", result["win_prob_away"]),
+                _metric_card(f"✈️ {away_team_mlb_zh}", result["win_prob_away"]),
                 unsafe_allow_html=True,
             )
 
@@ -439,7 +462,7 @@ else:
 
         fig.add_trace(
             go.Pie(
-                labels=[home_team_mlb, away_team_mlb],
+                labels=[home_team_mlb_zh, away_team_mlb_zh],
                 values=[result["win_prob_home"], result["win_prob_away"]],
                 hole=0.45,
                 marker_colors=["#89b4fa", "#f38ba8"],
@@ -448,12 +471,11 @@ else:
             row=1, col=1,
         )
 
-        bins_r = list(range(0, max_runs + 1))
         fig.add_trace(
             go.Histogram(
                 x=home_runs_arr,
                 xbins={"start": 0, "end": max_runs, "size": 1},
-                name=home_team_mlb,
+                name=home_team_mlb_zh,
                 marker_color="#89b4fa",
                 opacity=0.7,
             ),
@@ -463,7 +485,7 @@ else:
             go.Histogram(
                 x=away_runs_arr,
                 xbins={"start": 0, "end": max_runs, "size": 1},
-                name=away_team_mlb,
+                name=away_team_mlb_zh,
                 marker_color="#f38ba8",
                 opacity=0.7,
             ),
@@ -490,7 +512,7 @@ else:
         )
         ev_df = pd.DataFrame(
             {
-                "球隊": [home_team_mlb, away_team_mlb],
+                "球隊": [home_team_mlb_zh, away_team_mlb_zh],
                 "勝率": [f"{result['win_prob_home']:.2%}", f"{result['win_prob_away']:.2%}"],
                 "模型公平賠率（小數）": [
                     fair_odds(result["win_prob_home"]),

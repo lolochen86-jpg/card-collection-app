@@ -30,7 +30,7 @@ def _parse_float(value, default: float = 0.0) -> float:
 
 # ---------- teams -----------------------------------------------------------
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)
 def get_mlb_teams() -> Tuple[List[str], Dict[str, int]]:
     """Return sorted team names and {name: id} mapping."""
     data = statsapi.get("teams", {"sportId": 1, "activeStatus": "Yes"})
@@ -45,7 +45,7 @@ def get_mlb_teams() -> Tuple[List[str], Dict[str, int]]:
 
 # ---------- team season stats -----------------------------------------------
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)
 def get_team_season_stats(team_id: int, season: int = MLB_SEASON) -> Dict:
     """
     Returns combined hitting + pitching season stats for the team.
@@ -97,7 +97,7 @@ def get_team_season_stats(team_id: int, season: int = MLB_SEASON) -> Dict:
 
 # ---------- roster + pitcher stats ------------------------------------------
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)
 def get_team_pitchers(team_id: int) -> List[Dict]:
     """Return list of active pitchers: [{id, name, position}, ...]."""
     try:
@@ -117,7 +117,7 @@ def get_team_pitchers(team_id: int) -> List[Dict]:
         return []
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)
 def get_pitcher_stats(pitcher_id: int, season: int = MLB_SEASON) -> Dict:
     """Return ERA, WHIP, K/9, BB/9 for a specific pitcher."""
     defaults = {"era": LEAGUE_AVG_ERA, "whip": 1.30, "k9": 8.5, "bb9": 3.0, "innings": 0.0}

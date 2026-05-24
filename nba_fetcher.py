@@ -20,7 +20,7 @@ LEAGUE_AVG_OFF_RTG: float = 114.1
 LEAGUE_AVG_DEF_RTG: float = 114.1
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=86400, show_spinner=False)
 def get_nba_teams() -> Tuple[List[str], Dict[str, int]]:
     if not NBA_API_AVAILABLE:
         raise RuntimeError("nba_api 套件未安裝，請執行 pip install nba_api")
@@ -29,7 +29,7 @@ def get_nba_teams() -> Tuple[List[str], Dict[str, int]]:
     return sorted(team_dict.keys()), team_dict
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)  # 10 分鐘快取，每天比賽結束後可拿到當日最新數據
 def _fetch_league_advanced_stats(season: str = NBA_SEASON) -> pd.DataFrame:
     """Fetch ALL teams' Advanced Stats for the season (cached 1 hr)."""
     if not NBA_API_AVAILABLE:
