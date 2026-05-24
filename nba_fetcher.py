@@ -35,6 +35,24 @@ def _fetch_league_advanced_stats(season: str = NBA_SEASON) -> pd.DataFrame:
     if not NBA_API_AVAILABLE:
         raise RuntimeError("nba_api 套件未安裝")
     time.sleep(0.6)  # respect NBA API rate-limit
+    # NBA Stats API rejects requests without browser-like headers
+    _NBA_HEADERS = {
+        "Host": "stats.nba.com",
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "x-nba-stats-origin": "stats",
+        "x-nba-stats-token": "true",
+        "Referer": "https://stats.nba.com/",
+        "Connection": "keep-alive",
+        "Pragma": "no-cache",
+        "Cache-Control": "no-cache",
+    }
     try:
         endpoint = leaguedashteamstats.LeagueDashTeamStats(
             season=season,
@@ -42,6 +60,7 @@ def _fetch_league_advanced_stats(season: str = NBA_SEASON) -> pd.DataFrame:
             per_mode_simple="PerGame",
             season_type_all_star="Regular Season",
             timeout=30,
+            headers=_NBA_HEADERS,
         )
         df = endpoint.get_data_frames()[0]
         if df.empty:
