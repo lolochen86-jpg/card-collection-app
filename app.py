@@ -264,6 +264,37 @@ if sport == "NBA 🏀":
         )
         st.plotly_chart(fig, use_container_width=True)
 
+        # ── Margin distribution ───────────────────────────────────────────
+        st.markdown('<div class="section-header">主場得失分分布</div>', unsafe_allow_html=True)
+        st.caption(f"正數 = 主場（{home_team_zh}）贏幾分；負數 = 客場勝、主場輸幾分")
+
+        margin_diff = result["score_diff"]
+        margin_fig = go.Figure()
+        margin_fig.add_trace(go.Histogram(
+            x=margin_diff[margin_diff > 0],
+            xbins={"start": 0, "end": int(margin_diff.max()) + 2, "size": 2},
+            name=f"主場勝（{home_team_zh}）",
+            marker_color="#89b4fa",
+            opacity=0.85,
+        ))
+        margin_fig.add_trace(go.Histogram(
+            x=margin_diff[margin_diff <= 0],
+            xbins={"start": int(margin_diff.min()) - 2, "end": 0, "size": 2},
+            name=f"客場勝（{away_team_zh}）",
+            marker_color="#f38ba8",
+            opacity=0.85,
+        ))
+        margin_fig.add_vline(x=0, line_dash="dash", line_color="#cdd6f4", line_width=1.5)
+        margin_fig.update_layout(
+            paper_bgcolor="#1e1e2e", plot_bgcolor="#1e1e2e", font_color="#cdd6f4",
+            barmode="overlay", height=320,
+            margin={"t": 20, "b": 50, "l": 20, "r": 20},
+            legend={"font": {"color": "#cdd6f4"}},
+        )
+        margin_fig.update_xaxes(title_text=f"分差（+ = {home_team_zh} 贏，− = {away_team_zh} 贏）", color="#cdd6f4")
+        margin_fig.update_yaxes(title_text="模擬場次", color="#cdd6f4")
+        st.plotly_chart(margin_fig, use_container_width=True)
+
         # ── EV table ─────────────────────────────────────────────────────
         st.markdown('<div class="section-header">期望值參考（EV）</div>', unsafe_allow_html=True)
         st.caption(
@@ -504,6 +535,37 @@ else:
         )
         fig.update_xaxes(title_text="得分（分）", row=1, col=2, color="#cdd6f4")
         st.plotly_chart(fig, use_container_width=True)
+
+        # ── Margin distribution ───────────────────────────────────────────
+        st.markdown('<div class="section-header">主場得失分分布</div>', unsafe_allow_html=True)
+        st.caption(f"正數 = 主場（{home_team_mlb_zh}）贏幾分；負數 = 客場勝、主場輸幾分")
+
+        mlb_margin = result["home_runs"] - result["away_runs"]
+        mlb_margin_fig = go.Figure()
+        mlb_margin_fig.add_trace(go.Histogram(
+            x=mlb_margin[mlb_margin > 0],
+            xbins={"start": 0, "end": int(mlb_margin.max()) + 1, "size": 1},
+            name=f"主場勝（{home_team_mlb_zh}）",
+            marker_color="#89b4fa",
+            opacity=0.85,
+        ))
+        mlb_margin_fig.add_trace(go.Histogram(
+            x=mlb_margin[mlb_margin <= 0],
+            xbins={"start": int(mlb_margin.min()) - 1, "end": 0, "size": 1},
+            name=f"客場勝（{away_team_mlb_zh}）",
+            marker_color="#f38ba8",
+            opacity=0.85,
+        ))
+        mlb_margin_fig.add_vline(x=0, line_dash="dash", line_color="#cdd6f4", line_width=1.5)
+        mlb_margin_fig.update_layout(
+            paper_bgcolor="#1e1e2e", plot_bgcolor="#1e1e2e", font_color="#cdd6f4",
+            barmode="overlay", height=320,
+            margin={"t": 20, "b": 50, "l": 20, "r": 20},
+            legend={"font": {"color": "#cdd6f4"}},
+        )
+        mlb_margin_fig.update_xaxes(title_text=f"分差（+ = {home_team_mlb_zh} 贏，− = {away_team_mlb_zh} 贏）", color="#cdd6f4")
+        mlb_margin_fig.update_yaxes(title_text="模擬場次", color="#cdd6f4")
+        st.plotly_chart(mlb_margin_fig, use_container_width=True)
 
         # ── EV table ─────────────────────────────────────────────────────
         st.markdown('<div class="section-header">期望值參考（EV）</div>', unsafe_allow_html=True)
