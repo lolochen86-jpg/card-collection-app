@@ -1,12 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import type { DashboardRow, League } from "@/types";
 import { Header } from "./Header";
 import { GameCard } from "./GameCard";
+import { EdgeTable } from "./EdgeTable";
+import { TaiwanOddsModal } from "./TaiwanOddsModal";
 import { StatsCard } from "./StatsCard";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { clsx } from "clsx";
+
+type ViewMode = "cards" | "table";
 
 type SortKey = "gameTime" | "evPct" | "league";
 type FilterLeague = League | "ALL";
@@ -68,6 +73,8 @@ export function Dashboard() {
   const [showPositiveOnly, setShowPositiveOnly] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [dataSource, setDataSource] = useState<"mock" | "supabase" | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [showImport, setShowImport] = useState(false);
 
   const fetchData = useCallback(
     async (showRefreshing = false) => {
@@ -126,7 +133,7 @@ export function Dashboard() {
         lastUpdated={lastUpdated}
       />
 
-      <main className="flex-1 p-4 max-w-5xl mx-auto w-full space-y-4">
+      <main className="flex-1 p-4 max-w-7xl mx-auto w-full space-y-4">
         {/* Stats summary */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatsCard
@@ -176,8 +183,9 @@ export function Dashboard() {
           </div>
         )}
 
-        {/* Filters */}
+        {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* League filter */}
           <div className="flex rounded-lg border border-surface-border overflow-hidden">
             {(["ALL", "NBA", "MLB"] as FilterLeague[]).map((l) => (
               <button
@@ -195,6 +203,7 @@ export function Dashboard() {
             ))}
           </div>
 
+          {/* Sort */}
           <div className="flex rounded-lg border border-surface-border overflow-hidden">
             {(
               [
@@ -218,6 +227,7 @@ export function Dashboard() {
             ))}
           </div>
 
+          {/* Positive EV filter */}
           <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer">
             <input
               type="checkbox"
@@ -227,9 +237,59 @@ export function Dashboard() {
             />
             僅顯示正 EV
           </label>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* View toggle */}
+          <div className="flex rounded-lg border border-surface-border overflow-hidden">
+            {(
+              [
+                { v: "table", icon: "☰" },
+                { v: "cards", icon: "⊞" },
+              ] as { v: ViewMode; icon: string }[]
+            ).map(({ v, icon }) => (
+              <button
+                key={v}
+                onClick={() => setViewMode(v)}
+                title={v === "table" ? "表格模式" : "卡片模式"}
+                className={clsx(
+                  "px-2.5 py-1.5 text-sm transition-colors",
+                  viewMode === v
+                    ? "bg-slate-600 text-white"
+                    : "text-slate-400 hover:text-white hover:bg-surface-hover"
+                )}
+              >
+                {icon}
+              </button>
+            ))}
+          </div>
+
+          {/* Taiwan odds import */}
+          <button
+            onClick={() => setShowImport(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-blue-700/60 text-blue-400 hover:bg-blue-900/30 transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            匯入台彩
+          </button>
+
+          {/* Admin link */}
+          <Link
+            href="/admin"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-surface-border text-slate-400 hover:text-white hover:border-slate-500 transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            後台
+          </Link>
         </div>
 
-        {/* Game list */}
+        {/* Game list / table */}
         {loading && <LoadingSpinner />}
         {error && (
           <div className="text-red-400 text-sm bg-red-900/20 border border-red-700/40 rounded-lg p-3">
@@ -237,24 +297,37 @@ export function Dashboard() {
           </div>
         )}
 
-        {!loading && !error && sorted.length === 0 && (
-          <p className="text-center text-slate-500 py-12">
-            沒有符合條件的比賽
-          </p>
+        {!loading && !error && viewMode === "table" && (
+          <EdgeTable rows={sorted} />
         )}
 
-        {!loading && !error && (
-          <div className="space-y-3">
-            {sorted.map((row) => (
-              <GameCard
-                key={row.game.id}
-                row={row}
-                expanded={expandedIds.has(row.game.id)}
-                onToggle={() => toggleExpand(row.game.id)}
-              />
-            ))}
-          </div>
+        {!loading && !error && viewMode === "cards" && (
+          <>
+            {sorted.length === 0 && (
+              <p className="text-center text-slate-500 py-12">沒有符合條件的比賽</p>
+            )}
+            <div className="space-y-3">
+              {sorted.map((row) => (
+                <GameCard
+                  key={row.game.id}
+                  row={row}
+                  expanded={expandedIds.has(row.game.id)}
+                  onToggle={() => toggleExpand(row.game.id)}
+                />
+              ))}
+            </div>
+          </>
         )}
+
+        {/* Taiwan odds import modal */}
+        <TaiwanOddsModal
+          open={showImport}
+          onClose={() => setShowImport(false)}
+          onImported={() => {
+            setShowImport(false);
+            fetchData(true);
+          }}
+        />
 
         {/* Footer disclaimer */}
         <p className="text-xs text-slate-600 text-center pb-4">
