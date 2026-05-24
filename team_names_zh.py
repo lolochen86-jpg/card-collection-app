@@ -73,9 +73,8 @@ MLB_TEAMS_ZH: dict[str, str] = {
 
 
 def zh_label(en_name: str, mapping: dict[str, str]) -> str:
-    """回傳 '中文｜English' 格式；若找不到中文則只回傳英文。"""
-    zh = mapping.get(en_name)
-    return f"{zh}｜{en_name}" if zh else en_name
+    """回傳中文名稱；若找不到中文則回傳英文。"""
+    return mapping.get(en_name, en_name)
 
 
 def build_display_map(en_names: list[str], mapping: dict[str, str]) -> dict[str, str]:
@@ -84,6 +83,5 @@ def build_display_map(en_names: list[str], mapping: dict[str, str]) -> dict[str,
     顯示名稱用於下拉選單，英文名稱用於後端 API 查詢。
     """
     pairs = [(zh_label(en, mapping), en) for en in en_names]
-    # 按中文（如有）→ 英文排序
     pairs.sort(key=lambda x: (mapping.get(x[1], x[1]), x[1]))
     return dict(pairs)
