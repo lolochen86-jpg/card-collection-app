@@ -122,12 +122,20 @@ ALTER TABLE fair_probabilities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE edge_signals ENABLE ROW LEVEL SECURITY;
 
 -- 允許匿名讀取（Dashboard 顯示用）
+DROP POLICY IF EXISTS "public read games" ON games;
+DROP POLICY IF EXISTS "public read snapshots" ON odds_snapshots;
+DROP POLICY IF EXISTS "public read fair_prob" ON fair_probabilities;
+DROP POLICY IF EXISTS "public read edge_signals" ON edge_signals;
 CREATE POLICY "public read games" ON games FOR SELECT USING (true);
 CREATE POLICY "public read snapshots" ON odds_snapshots FOR SELECT USING (true);
 CREATE POLICY "public read fair_prob" ON fair_probabilities FOR SELECT USING (true);
 CREATE POLICY "public read edge_signals" ON edge_signals FOR SELECT USING (true);
 
 -- 只允許 service_role 寫入
+DROP POLICY IF EXISTS "service write games" ON games;
+DROP POLICY IF EXISTS "service write snapshots" ON odds_snapshots;
+DROP POLICY IF EXISTS "service write fair_prob" ON fair_probabilities;
+DROP POLICY IF EXISTS "service write edge_signals" ON edge_signals;
 CREATE POLICY "service write games" ON games FOR ALL
   USING (auth.role() = 'service_role');
 CREATE POLICY "service write snapshots" ON odds_snapshots FOR ALL
