@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users: only owner can write their own profile
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Cards: owner can CRUD; others can only read
+    match /cards/{cardId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+
+      // Price history subcollection
+      match /priceHistory/{priceId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null
+          && get(/databases/$(database)/documents/cards/$(cardId)).data.userId == request.auth.uid;
+      }
+    }
+
+    // Posts: authenticated users can create; owner can delete
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null; // for like/comment counts
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // Comments
+    match /comments/{commentId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // Likes
+    match /likes/{likeId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && (likeId.matches(request.auth.uid + '$')
+            || resource == null);
+    }
+  }
+}
