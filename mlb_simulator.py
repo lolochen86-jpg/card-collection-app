@@ -2,8 +2,8 @@
 MLB Monte Carlo simulation engine — Poisson run model.
 
 Model per game:
-  λ_home = home_rpg × (LgAvgERA / away_pitcher_era) × HOME_FACTOR
-  λ_away = away_rpg × (LgAvgERA / home_pitcher_era)
+  λ_home = home_rpg × (away_pitcher_era / LgAvgERA) × HOME_FACTOR
+  λ_away = away_rpg × (home_pitcher_era / LgAvgERA)
 
   home_runs ~ Poisson(λ_home)  (9-inning total)
   away_runs ~ Poisson(λ_away)
@@ -55,12 +55,12 @@ def simulate_mlb(
     # Expected runs this game
     lambda_home = _clamp_lambda(
         home_team["runs_per_game"]
-        * (LEAGUE_AVG_ERA / max(away_pitcher_era, 0.5))
+        * (max(away_pitcher_era, 0.5) / LEAGUE_AVG_ERA)
         * HOME_FIELD_FACTOR
     )
     lambda_away = _clamp_lambda(
         away_team["runs_per_game"]
-        * (LEAGUE_AVG_ERA / max(home_pitcher_era, 0.5))
+        * (max(home_pitcher_era, 0.5) / LEAGUE_AVG_ERA)
     )
 
     home_runs = rng.poisson(lambda_home, n).astype(float)

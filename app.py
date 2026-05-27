@@ -5,6 +5,7 @@ Deploy: Streamlit Community Cloud  —  streamlit run app.py
 """
 
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
@@ -165,8 +166,6 @@ if sport == "NBA 🏀":
         # ── Stats table ──────────────────────────────────────────────────
         st.markdown('<div class="section-header">球隊進階數據（本季）</div>', unsafe_allow_html=True)
 
-        import pandas as pd
-
         stats_df = pd.DataFrame(
             {
                 "指標": ["Pace（每 48 分鐘回合數）", "進攻效率 OffRtg", "防守效率 DefRtg", "淨效率 NetRtg"],
@@ -219,7 +218,6 @@ if sport == "NBA 🏀":
             subplot_titles=("勝率分佈（圓餅圖）", "得分分佈直方圖"),
         )
 
-        # Pie
         fig.add_trace(
             go.Pie(
                 labels=[home_team_zh, away_team_zh],
@@ -234,7 +232,6 @@ if sport == "NBA 🏀":
         )
 
         # Histogram of score differences
-        bins = np.arange(-60, 61, 2)
         fig.add_trace(
             go.Histogram(
                 x=result["score_diff"],
@@ -424,8 +421,6 @@ else:
 
         # ── Stats table ──────────────────────────────────────────────────
         st.markdown('<div class="section-header">球隊本季數據</div>', unsafe_allow_html=True)
-
-        import pandas as pd
 
         home_pit_label = home_pit_sel if home_pit_sel != "（使用球隊 ERA）" else "（球隊整體）"
         away_pit_label = away_pit_sel if away_pit_sel != "（使用球隊 ERA）" else "（球隊整體）"

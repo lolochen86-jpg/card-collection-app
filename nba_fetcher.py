@@ -14,10 +14,10 @@ try:
 except ImportError:
     NBA_API_AVAILABLE = False
 
-NBA_SEASON = "2024-25"
+NBA_SEASON = "2025-26"
 LEAGUE_AVG_PACE: float = 99.2
-LEAGUE_AVG_OFF_RTG: float = 114.1
-LEAGUE_AVG_DEF_RTG: float = 114.1
+LEAGUE_AVG_OFF_RTG: float = 115.0
+LEAGUE_AVG_DEF_RTG: float = 115.0
 
 
 @st.cache_data(ttl=86400, show_spinner=False)

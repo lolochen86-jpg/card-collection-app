@@ -17,7 +17,7 @@ Rationale for def_factor:
 import numpy as np
 from typing import Dict
 
-LEAGUE_AVG_DEF_RTG: float = 114.1
+LEAGUE_AVG_DEF_RTG: float = 115.0
 SCORE_STD_DEV: float = 11.0          # empirical std-dev for single-game NBA scores
 HOME_COURT_ADVANTAGE: float = 3.0    # pts added for home team
 N_SIMULATIONS: int = 10_000

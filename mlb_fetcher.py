@@ -7,7 +7,7 @@ import statsapi
 import streamlit as st
 from typing import Dict, List, Optional, Tuple
 
-MLB_SEASON = 2025
+MLB_SEASON = 2026
 LEAGUE_AVG_ERA: float = 4.20
 LEAGUE_AVG_RPG: float = 4.50
 
