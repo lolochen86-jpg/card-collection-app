@@ -30,6 +30,12 @@ from mlb_fetcher import (
 )
 from mlb_simulator import simulate_mlb
 from team_names_zh import MLB_TEAMS_ZH, NBA_TEAMS_ZH, build_display_map, zh_label
+from odds_fetcher import (
+    NBA_SPORT_KEY,
+    MLB_SPORT_KEY,
+    get_live_odds,
+    ev_pct,
+)
 
 # ── page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -297,15 +303,31 @@ if sport == "NBA 🏀":
         st.caption(
             "將此公平賠率與博彩公司賠率比較：模型賠率 < 博彩賠率 → 存在正期望值（+EV）。"
         )
-        ev_df = pd.DataFrame(
-            {
-                "球隊": [home_team_zh, away_team_zh],
-                "勝率": [f"{result['win_prob_a']:.2%}", f"{result['win_prob_b']:.2%}"],
-                "模型公平賠率（小數）": [fair_odds(result["win_prob_a"]), fair_odds(result["win_prob_b"])],
-                "美式賠率": [american_odds(result["win_prob_a"]), american_odds(result["win_prob_b"])],
-            }
-        )
+
+        with st.spinner("查詢即時博彩賠率…"):
+            live = get_live_odds(NBA_SPORT_KEY, home_team_name, away_team_name)
+
+        ev_data = {
+            "球隊": [home_team_zh, away_team_zh],
+            "勝率": [f"{result['win_prob_a']:.2%}", f"{result['win_prob_b']:.2%}"],
+            "模型公平賠率": [fair_odds(result["win_prob_a"]), fair_odds(result["win_prob_b"])],
+            "美式賠率": [american_odds(result["win_prob_a"]), american_odds(result["win_prob_b"])],
+        }
+        if live:
+            ev_data["博彩最高賠率"] = [
+                f"{live['best_home']:.3f}" if live["best_home"] else "—",
+                f"{live['best_away']:.3f}" if live["best_away"] else "—",
+            ]
+            home_ev = ev_pct(result["win_prob_a"], live["best_home"])
+            away_ev = ev_pct(result["win_prob_b"], live["best_away"])
+            ev_data["EV%"] = [
+                f"{home_ev:+.1%}" if home_ev is not None else "—",
+                f"{away_ev:+.1%}" if away_ev is not None else "—",
+            ]
+        ev_df = pd.DataFrame(ev_data)
         st.dataframe(ev_df, use_container_width=True, hide_index=True)
+        if not live:
+            st.caption("💡 設定 ODDS_API_KEY 後可顯示即時博彩賠率與 EV% 分析")
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #  MLB SECTION
@@ -567,21 +589,37 @@ else:
         st.caption(
             "將此公平賠率與博彩公司賠率比較：模型賠率 < 博彩賠率 → 存在正期望值（+EV）。"
         )
-        ev_df = pd.DataFrame(
-            {
-                "球隊": [home_team_mlb_zh, away_team_mlb_zh],
-                "勝率": [f"{result['win_prob_home']:.2%}", f"{result['win_prob_away']:.2%}"],
-                "模型公平賠率（小數）": [
-                    fair_odds(result["win_prob_home"]),
-                    fair_odds(result["win_prob_away"]),
-                ],
-                "美式賠率": [
-                    american_odds(result["win_prob_home"]),
-                    american_odds(result["win_prob_away"]),
-                ],
-            }
-        )
+
+        with st.spinner("查詢即時博彩賠率…"):
+            live_mlb = get_live_odds(MLB_SPORT_KEY, home_team_mlb, away_team_mlb)
+
+        mlb_ev_data = {
+            "球隊": [home_team_mlb_zh, away_team_mlb_zh],
+            "勝率": [f"{result['win_prob_home']:.2%}", f"{result['win_prob_away']:.2%}"],
+            "模型公平賠率": [
+                fair_odds(result["win_prob_home"]),
+                fair_odds(result["win_prob_away"]),
+            ],
+            "美式賠率": [
+                american_odds(result["win_prob_home"]),
+                american_odds(result["win_prob_away"]),
+            ],
+        }
+        if live_mlb:
+            mlb_ev_data["博彩最高賠率"] = [
+                f"{live_mlb['best_home']:.3f}" if live_mlb["best_home"] else "—",
+                f"{live_mlb['best_away']:.3f}" if live_mlb["best_away"] else "—",
+            ]
+            home_ev = ev_pct(result["win_prob_home"], live_mlb["best_home"])
+            away_ev = ev_pct(result["win_prob_away"], live_mlb["best_away"])
+            mlb_ev_data["EV%"] = [
+                f"{home_ev:+.1%}" if home_ev is not None else "—",
+                f"{away_ev:+.1%}" if away_ev is not None else "—",
+            ]
+        ev_df = pd.DataFrame(mlb_ev_data)
         st.dataframe(ev_df, use_container_width=True, hide_index=True)
+        if not live_mlb:
+            st.caption("💡 設定 ODDS_API_KEY 後可顯示即時博彩賠率與 EV% 分析")
 
 # ── footer ───────────────────────────────────────────────────────────────────
 st.divider()
